@@ -1,0 +1,22 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang++",
+      "-m32",
+      "-c",
+      "-std=c++20",
+      "-ffreestanding",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-fno-exceptions",
+      "-fno-rtti",
+      "-o",
+      "build/kernel/kernel.o",
+      "kernel/kernel.cpp"
+    ],
+    "directory": "/home/bigsmarty/projects/BSOS",
+    "file": "/home/bigsmarty/projects/BSOS/kernel/kernel.cpp",
+    "output": "/home/bigsmarty/projects/BSOS/build/kernel/kernel.o"
+  }
+]
