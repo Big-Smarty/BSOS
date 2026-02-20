@@ -1,0 +1,17 @@
+[package]
+name = "bsos"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "bsos"
+test = false
+bench = false
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[dependencies]
