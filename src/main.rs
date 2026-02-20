@@ -9,12 +9,13 @@ static HELLO: &[u8] = b"Hello World!";
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    vga::print_something();
+    println!("hello hello {}", 1.0 / 3.0);
 
     loop {}
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    println!("{info}");
     loop {}
 }
