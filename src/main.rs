@@ -6,14 +6,13 @@
 
 use core::panic::PanicInfo;
 
-use bsos::QemuExitCode;
-use bsos::exit_qemu;
 use bsos::println;
-use bsos::serial_println;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     println!("hello hello {}", 1.0 / 3.0);
+
+    bsos::init();
 
     #[cfg(test)]
     test_main();
@@ -32,6 +31,8 @@ fn panic(info: &PanicInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    use bsos::{QemuExitCode, exit_qemu, serial_println};
+
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
