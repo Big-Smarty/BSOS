@@ -6,7 +6,7 @@
 
 use core::panic::PanicInfo;
 
-use bsos::println;
+use bsos::{hlt_loop, println};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
@@ -17,18 +17,14 @@ pub extern "C" fn _start() -> ! {
     #[cfg(test)]
     test_main();
 
-    unsafe {
-        *(0xdeadbeef as *mut u8) = 42;
-    }
-
-    loop {}
+    hlt_loop();
 }
 
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{info}");
-    loop {}
+    hlt_loop()
 }
 
 // our panic handler in test mode
@@ -40,5 +36,5 @@ fn panic(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    loop {}
+    hlt_loop();
 }

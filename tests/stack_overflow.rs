@@ -4,7 +4,7 @@
 
 use core::panic::PanicInfo;
 
-use bsos::{exit_qemu, gdt::DOUBLE_FAULT_IST_INDEX, serial_println};
+use bsos::{exit_qemu, gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, serial_println};
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
@@ -37,7 +37,7 @@ extern "x86-interrupt" fn double_fault_handler(
 ) -> ! {
     serial_println!("[ok]");
     exit_qemu(bsos::QemuExitCode::Success);
-    loop {}
+    hlt_loop()
 }
 
 fn init_test_idt() {

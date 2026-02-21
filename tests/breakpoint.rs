@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use bsos::{QemuExitCode, exit_qemu, init, serial_println};
+use bsos::{QemuExitCode, exit_qemu, hlt_loop, init, serial_println};
 use core::panic::PanicInfo;
 
 #[unsafe(no_mangle)]
@@ -9,7 +9,7 @@ pub extern "C" fn _start() -> ! {
     init();
     breakpoint();
     exit_qemu(QemuExitCode::Success);
-    loop {}
+    hlt_loop()
 }
 
 fn breakpoint() {
