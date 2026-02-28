@@ -5,12 +5,15 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 
+extern crate alloc;
+
 use core::panic::PanicInfo;
 
 #[cfg(test)]
 use bootloader::BootInfo;
 use x86_64::instructions::hlt;
 
+pub mod allocator;
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;

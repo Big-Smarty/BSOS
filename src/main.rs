@@ -6,6 +6,9 @@
 
 use core::panic::PanicInfo;
 
+extern crate alloc;
+
+use alloc::boxed::Box;
 use bootloader::{BootInfo, entry_point};
 use bsos::{
     hlt_loop,
@@ -19,11 +22,16 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     serial_println!("hello hello {}", 1.0 / 3.0);
 
     bsos::init();
-
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
 
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
     let mut frame_allocator = memory::BootInfoFrameAllocator::new(&boot_info.memory_map);
+
+    bsos::allocator::init_heap(&mut mapper, &mut frame_allocator)
+        .expect("Failed to initialize heap");
+
+    let x = Box::new(41);
+    println!("x: {x:?}");
 
     #[cfg(test)]
     test_main();
