@@ -6,8 +6,6 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
 
-use crate::{exit_qemu, serial_println};
-
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,

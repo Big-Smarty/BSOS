@@ -6,20 +6,32 @@
 
 use core::panic::PanicInfo;
 
-use bsos::{hlt_loop, println, serial_println};
+use bootloader::{BootInfo, entry_point};
+use bsos::{
+    hlt_loop,
+    memory::{self},
+    println, serial_println,
+};
+use x86_64::VirtAddr;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("hello hello {}", 1.0 / 3.0);
     serial_println!("hello hello {}", 1.0 / 3.0);
 
     bsos::init();
+
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut frame_allocator = memory::BootInfoFrameAllocator::new(&boot_info.memory_map);
 
     #[cfg(test)]
     test_main();
 
     hlt_loop();
 }
+
+entry_point!(kernel_main);
 
 #[cfg(not(test))]
 #[panic_handler]

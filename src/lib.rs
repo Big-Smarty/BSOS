@@ -7,10 +7,13 @@
 
 use core::panic::PanicInfo;
 
+#[cfg(test)]
+use bootloader::BootInfo;
 use x86_64::instructions::hlt;
 
 pub mod gdt;
 pub mod interrupts;
+pub mod memory;
 pub mod serial;
 pub mod vga;
 
@@ -71,11 +74,16 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 
 /// Entry point for `cargo test`
 #[cfg(test)]
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     test_main();
     hlt_loop()
 }
+
+#[cfg(test)]
+use bootloader::entry_point;
+
+#[cfg(test)]
+entry_point!(test_kernel_main);
 
 #[cfg(test)]
 #[panic_handler]
