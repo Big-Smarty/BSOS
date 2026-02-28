@@ -6,11 +6,12 @@
 
 use core::panic::PanicInfo;
 
-use bsos::{hlt_loop, println};
+use bsos::{hlt_loop, println, serial_println};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     println!("hello hello {}", 1.0 / 3.0);
+    serial_println!("hello hello {}", 1.0 / 3.0);
 
     bsos::init();
 

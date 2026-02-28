@@ -6,6 +6,8 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
 
+use crate::{exit_qemu, serial_println};
+
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
@@ -48,23 +50,23 @@ impl ColorCode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
-struct ScreenChar {
+pub struct ScreenChar {
     ascii_character: u8,
     color_code: ColorCode,
 }
 
-const BUFFER_HEIGHT: usize = 25;
-const BUFFER_WIDTH: usize = 80;
+pub const BUFFER_HEIGHT: usize = 25;
+pub const BUFFER_WIDTH: usize = 80;
 
 #[repr(transparent)]
-struct Buffer {
-    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
+pub struct Buffer {
+    pub chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
 pub struct Writer {
     column_position: usize,
     color_code: ColorCode,
-    buffer: &'static mut Buffer,
+    pub buffer: &'static mut Buffer,
 }
 
 impl Writer {
@@ -85,6 +87,63 @@ impl Writer {
                     color_code,
                 });
                 self.column_position += 1;
+            }
+        }
+    }
+
+    fn backspace(&mut self) {
+        let row = BUFFER_HEIGHT - 1;
+        let col = self.column_position;
+        if self.column_position <= 0
+            && self.buffer.chars[row][col].read()
+                == (ScreenChar {
+                    ascii_character: 0,
+                    color_code: ColorCode(0),
+                })
+        {
+            self.remove_last_line();
+            return;
+        }
+
+        self.buffer.chars[row][col].write(ScreenChar {
+            ascii_character: 0,
+            color_code: ColorCode(0),
+        });
+
+        if self.column_position != 0 {
+            self.column_position -= 1;
+        }
+    }
+
+    fn remove_last_line(&mut self) {
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let y = BUFFER_HEIGHT - row;
+                let character = self.buffer.chars[y][col].read();
+                if row > 1 && row < BUFFER_HEIGHT {
+                    self.buffer.chars[y + 1][col].write(character);
+                }
+            }
+        }
+        for col in 1..=BUFFER_WIDTH {
+            let x = BUFFER_WIDTH - col;
+            let character = self.buffer.chars[BUFFER_HEIGHT - 1][x].read();
+            match character {
+                ScreenChar {
+                    ascii_character: 32,
+                    color_code: _,
+                }
+                | ScreenChar {
+                    ascii_character: 0,
+                    color_code: _,
+                } => continue,
+                ScreenChar {
+                    ascii_character: _,
+                    color_code: _,
+                } => {
+                    self.column_position = x;
+                    return;
+                }
             }
         }
     }
@@ -115,6 +174,8 @@ impl Writer {
             match byte {
                 // printable ASCII byte or newline
                 0x20..=0x7e | b'\n' => self.write_byte(byte),
+                // backspace
+                8u8 => self.backspace(),
                 // not part of printable ASCII range
                 _ => self.write_byte(0xfe),
             }
