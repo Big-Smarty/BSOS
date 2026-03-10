@@ -12,10 +12,7 @@ use x86_64::{
     },
 };
 
-use crate::allocator::{
-    bump::BumpAllocator, fixed_size_block::FixedBlockSizeAllocator,
-    linked_list::LinkedListAllocator,
-};
+use crate::allocator::fixed_size_block::FixedBlockSizeAllocator;
 
 pub struct Locked<A> {
     inner: spin::Mutex<A>,
@@ -28,7 +25,7 @@ impl<A> Locked<A> {
         }
     }
 
-    pub fn lock(&self) -> spin::MutexGuard<A> {
+    pub fn lock(&self) -> spin::MutexGuard<'_, A> {
         self.inner.lock()
     }
 }

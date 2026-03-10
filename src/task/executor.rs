@@ -1,10 +1,6 @@
 use core::task::{Context, Poll, Waker};
 
-use alloc::{
-    collections::{BTreeMap, VecDeque},
-    sync::Arc,
-    task::Wake,
-};
+use alloc::{collections::BTreeMap, sync::Arc, task::Wake};
 use crossbeam_queue::ArrayQueue;
 use x86_64::instructions::interrupts::{self, enable_and_hlt};
 

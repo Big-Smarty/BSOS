@@ -8,13 +8,11 @@ use core::panic::PanicInfo;
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use bootloader::{BootInfo, entry_point};
 use bsos::{
     hlt_loop,
     memory::{self},
     println, serial_println,
-    simple_executor::SimpleExecutor,
     task::{Task, executor::Executor, keyboard},
 };
 use x86_64::VirtAddr;

@@ -1,14 +1,12 @@
 use lazy_static::lazy_static;
-use pc_keyboard::{Keyboard, ScancodeSet1, layouts};
 use pic8259::ChainedPics;
-use spin::Mutex;
 use x86_64::{
     instructions::port::Port,
     registers::control::Cr2,
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
 };
 
-use crate::{gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, print, println, task::keyboard::add_scancode};
+use crate::{gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, println, task::keyboard::add_scancode};
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
