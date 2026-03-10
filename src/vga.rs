@@ -1,6 +1,10 @@
-use core::fmt;
+use core::{
+    fmt,
+    ops::{Deref, DerefMut},
+    ptr::NonNull,
+};
 
-use volatile::Volatile;
+use volatile::VolatilePtr;
 
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -13,7 +17,7 @@ lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) }
+        buffer: VolatileBuffer::new(),
     });
 }
 
@@ -57,14 +61,58 @@ pub struct ScreenChar {
 }
 
 #[repr(transparent)]
+pub struct VolatileScreenChar(VolatilePtr<'static, ScreenChar>);
+
+impl Deref for VolatileScreenChar {
+    type Target = VolatilePtr<'static, ScreenChar>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for VolatileScreenChar {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+unsafe impl Sync for VolatileScreenChar {}
+unsafe impl Send for VolatileScreenChar {}
+
+#[repr(transparent)]
+#[derive(Copy, Clone)]
 pub struct Buffer {
-    pub chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
+    pub chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
+}
+
+unsafe impl Sync for Buffer {}
+unsafe impl Send for Buffer {}
+
+#[repr(transparent)]
+pub struct VolatileBuffer(VolatilePtr<'static, Buffer>);
+
+unsafe impl Sync for VolatileBuffer {}
+unsafe impl Send for VolatileBuffer {}
+
+impl VolatileBuffer {
+    pub fn new() -> Self {
+        Self(unsafe { VolatilePtr::new(NonNull::new(&mut *(0xb8000 as *mut Buffer)).unwrap()) })
+    }
+}
+
+impl Deref for VolatileBuffer {
+    type Target = Buffer;
+
+    fn deref(&self) -> &Self::Target {
+        &'static (unsafe { *(0xb8000 as *mut Buffer) })
+    }
 }
 
 pub struct Writer {
     column_position: usize,
     color_code: ColorCode,
-    pub buffer: &'static mut Buffer,
+    pub buffer: VolatileBuffer,
 }
 
 impl Writer {
@@ -80,10 +128,10 @@ impl Writer {
                 let col = self.column_position;
 
                 let color_code = self.color_code;
-                self.buffer.chars[row][col].write(ScreenChar {
+                self.buffer.read().chars[row][col] = ScreenChar {
                     ascii_character: byte,
                     color_code,
-                });
+                };
                 self.column_position += 1;
             }
         }
@@ -93,7 +141,7 @@ impl Writer {
         let row = BUFFER_HEIGHT - 1;
         let col = self.column_position;
         if self.column_position <= 0
-            && self.buffer.chars[row][col].read()
+            && self.buffer.read().chars[row][col]
                 == (ScreenChar {
                     ascii_character: 0,
                     color_code: ColorCode(0),
@@ -103,10 +151,10 @@ impl Writer {
             return;
         }
 
-        self.buffer.chars[row][col].write(ScreenChar {
+        self.buffer.chars[row][col] = ScreenChar {
             ascii_character: 0,
             color_code: ColorCode(0),
-        });
+        };
 
         if self.column_position != 0 {
             self.column_position -= 1;
@@ -117,15 +165,15 @@ impl Writer {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
                 let y = BUFFER_HEIGHT - row;
-                let character = self.buffer.chars[y][col].read();
+                let character = self.buffer.chars[y][col];
                 if row > 1 && row < BUFFER_HEIGHT {
-                    self.buffer.chars[y + 1][col].write(character);
+                    self.buffer.chars[y + 1][col] = character;
                 }
             }
         }
         for col in 1..=BUFFER_WIDTH {
             let x = BUFFER_WIDTH - col;
-            let character = self.buffer.chars[BUFFER_HEIGHT - 1][x].read();
+            let character = self.buffer.chars[BUFFER_HEIGHT - 1][x];
             match character {
                 ScreenChar {
                     ascii_character: 32,
@@ -149,8 +197,8 @@ impl Writer {
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
-                let character = self.buffer.chars[row][col].read();
-                self.buffer.chars[row - 1][col].write(character);
+                let character = self.buffer.chars[row][col];
+                self.buffer.chars[row - 1][col] = character;
             }
         }
         self.clear_row(BUFFER_HEIGHT - 1);
@@ -163,7 +211,7 @@ impl Writer {
             color_code: self.color_code,
         };
         for col in 0..BUFFER_WIDTH {
-            self.buffer.chars[row][col].write(blank);
+            self.buffer.chars[row][col] = blank;
         }
     }
 
@@ -225,7 +273,7 @@ fn test_println_output() {
         let s = "Some test string that fits on a single line";
         println!("{}", s);
         for (i, c) in s.chars().enumerate() {
-            let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read();
+            let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i];
             assert_eq!(char::from(screen_char.ascii_character), c);
         }
     });

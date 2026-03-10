@@ -2,7 +2,7 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 
-use core::panic::PanicInfo;
+use core::{panic::PanicInfo, ptr::NonNull};
 
 use bsos::{exit_qemu, gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, serial_println};
 use lazy_static::lazy_static;
@@ -47,7 +47,7 @@ fn init_test_idt() {
 #[allow(unconditional_recursion)]
 fn stack_overflow() {
     stack_overflow();
-    volatile::Volatile::new(0).read();
+    _ = unsafe { volatile::VolatilePtr::new(NonNull::from_ref(&(0 as *mut u8))).read() };
 }
 
 #[panic_handler]
