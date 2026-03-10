@@ -1,14 +1,14 @@
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
-#![test_runner(bsos::test_runner)]
+#![test_runner(kernel::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 use core::panic::PanicInfo;
 
 use alloc::{boxed::Box, vec::Vec};
-use bootloader::{BootInfo, entry_point};
-use bsos::{
+use bootloader_api::{BootInfo, entry_point};
+use kernel::{
     self,
     allocator::{self, HEAP_SIZE},
     memory::{self, BootInfoFrameAllocator},
@@ -19,11 +19,11 @@ extern crate alloc;
 
 entry_point!(main);
 
-fn main(boot_info: &'static BootInfo) -> ! {
-    bsos::init();
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+fn main(boot_info: &'static mut BootInfo) -> ! {
+    kernel::init();
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset.take().unwrap());
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = BootInfoFrameAllocator::new(&boot_info.memory_map);
+    let mut frame_allocator = BootInfoFrameAllocator::new(&boot_info.memory_regions);
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("Failed to initialize heap!");
     test_main();
     loop {}
@@ -31,7 +31,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    bsos::test_panic_handler(info)
+    kernel::test_panic_handler(info)
 }
 
 #[test_case]

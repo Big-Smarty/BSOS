@@ -1,0 +1,8 @@
+[[language]]
+name = "rust"
+
+[language-server.rust-analyzer.config]
+# This tells RA to look at these specific manifests as entry points
+rust-analyzer.linkedProjects = ["./kernel/Cargo.toml"]
+# This ensures RA uses the kernel's target for diagnostics
+rust-analyzer.check.extraArgs = ["--target", "kernel/x86_64-your-custom-target.json"]

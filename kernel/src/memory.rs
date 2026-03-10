@@ -1,4 +1,4 @@
-use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use bootloader_api::info::{MemoryRegionKind, MemoryRegions};
 use x86_64::{
     PhysAddr, VirtAddr,
     registers::control::Cr3,
@@ -23,22 +23,22 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
 }
 
 pub struct BootInfoFrameAllocator {
-    memory_map: &'static MemoryMap,
+    memory_regions: &'static MemoryRegions,
     next: usize,
 }
 
 impl BootInfoFrameAllocator {
-    pub fn new(memory_map: &'static MemoryMap) -> Self {
+    pub fn new(memory_regions: &'static MemoryRegions) -> Self {
         Self {
-            memory_map,
+            memory_regions,
             next: 0,
         }
     }
 
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
-        let regions = self.memory_map.iter();
-        let usable_regions = regions.filter(|r| r.region_type == MemoryRegionType::Usable);
-        let addr_ranges = usable_regions.map(|r| r.range.start_addr()..r.range.end_addr());
+        let regions = self.memory_regions.iter();
+        let usable_regions = regions.filter(|r| r.kind == MemoryRegionKind::Usable);
+        let addr_ranges = usable_regions.map(|r| r.start..r.end);
         let frame_addresses = addr_ranges.flat_map(|r| r.step_by(4096));
         frame_addresses.map(|f| PhysFrame::containing_address(PhysAddr::new(f)))
     }

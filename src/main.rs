@@ -1,67 +1,69 @@
-#![no_std]
-#![no_main]
-#![feature(custom_test_frameworks)]
-#![test_runner(bsos::test_runner)]
-#![reexport_test_harness_main = "test_main"]
+use ovmf_prebuilt::{Arch, FileType, Prebuilt, Source};
+use std::env;
+use std::process::{Command, exit};
 
-use core::panic::PanicInfo;
+fn main() {
+    // read env variables that were set in build script
+    let uefi_path = env!("UEFI_PATH");
+    let bios_path = env!("BIOS_PATH");
 
-extern crate alloc;
+    // parse mode from CLI
+    let args: Vec<String> = env::args().collect();
+    let prog = &args[0];
 
-use bootloader::{BootInfo, entry_point};
-use bsos::{
-    hlt_loop,
-    memory::{self},
-    println, serial_println,
-    task::{Task, executor::Executor, keyboard},
-};
-use x86_64::VirtAddr;
+    // choose whether to start the UEFI or BIOS image
+    let uefi = match args.get(1).map(|s| s.to_lowercase()) {
+        Some(ref s) if s == "uefi" => true,
+        Some(ref s) if s == "bios" => false,
+        Some(ref s) if s == "-h" || s == "--help" => {
+            println!("Usage: {prog} [uefi|bios]");
+            println!("  uefi  - boot using OVMF (UEFI)");
+            println!("  bios  - boot using legacy BIOS");
+            exit(0);
+        }
+        _ => {
+            eprintln!("Usage: {prog} [uefi|bios]");
+            exit(1);
+        }
+    };
 
-async fn async_number() -> u32 {
-    42
-}
+    let mut cmd = Command::new("qemu-system-x86_64");
+    // print serial output to the shell
+    cmd.arg("-serial").arg("mon:stdio");
+    // don't display video output
+    cmd.arg("-display").arg("none");
+    // enable the guest to exit qemu
+    cmd.arg("-device")
+        .arg("isa-debug-exit,iobase=0xf4,iosize=0x04");
 
-async fn async_print_number() {
-    let number = async_number().await;
-    println!("async number: {}", number);
-}
+    if uefi {
+        let prebuilt =
+            Prebuilt::fetch(Source::LATEST, "target/ovmf").expect("failed to update prebuilt");
 
-fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    println!("hello hello {}", 1.0 / 3.0);
-    serial_println!("hello hello {}", 1.0 / 3.0);
+        let code = prebuilt.get_file(Arch::X64, FileType::Code);
+        let vars = prebuilt.get_file(Arch::X64, FileType::Vars);
 
-    bsos::init();
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+        cmd.arg("-drive")
+            .arg(format!("format=raw,file={uefi_path}"));
+        cmd.arg("-drive").arg(format!(
+            "if=pflash,format=raw,unit=0,file={},readonly=on",
+            code.display()
+        ));
+        // copy vars and enable rw instead of snapshot if you want to store data (e.g. enroll secure boot keys)
+        cmd.arg("-drive").arg(format!(
+            "if=pflash,format=raw,unit=1,file={},snapshot=on",
+            vars.display()
+        ));
+    } else {
+        cmd.arg("-drive")
+            .arg(format!("format=raw,file={bios_path}"));
+    }
 
-    let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = memory::BootInfoFrameAllocator::new(&boot_info.memory_map);
-
-    bsos::allocator::init_heap(&mut mapper, &mut frame_allocator)
-        .expect("Failed to initialize heap");
-
-    let mut executor = Executor::new();
-    executor.spawn(Task::new(async_print_number()));
-    executor.spawn(Task::new(keyboard::print_keypresses()));
-    executor.run();
-}
-
-entry_point!(kernel_main);
-
-#[cfg(not(test))]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    println!("{info}");
-    hlt_loop()
-}
-
-// our panic handler in test mode
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    use bsos::{QemuExitCode, exit_qemu, serial_println};
-
-    serial_println!("[failed]\n");
-    serial_println!("Error: {}\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    hlt_loop();
+    let mut child = cmd.spawn().expect("failed to start qemu-system-x86_64");
+    let status = child.wait().expect("failed to wait on qemu");
+    match status.code().unwrap_or(1) {
+        0x10 => 0, // success
+        0x11 => 1, // failure
+        _ => 2,    // unknown fault
+    };
 }

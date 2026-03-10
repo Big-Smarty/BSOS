@@ -6,12 +6,12 @@
 
 use core::panic::PanicInfo;
 
-use bsos::QemuExitCode;
-use bsos::Testable;
-use bsos::exit_qemu;
-use bsos::hlt_loop;
-use bsos::println;
-use bsos::serial_println;
+use kernel::QemuExitCode;
+use kernel::Testable;
+use kernel::exit_qemu;
+use kernel::hlt_loop;
+use kernel::println;
+use kernel::serial_println;
 
 #[unsafe(no_mangle)] // don't mangle the name of this function
 pub extern "C" fn _start() -> ! {
@@ -31,7 +31,7 @@ fn test_runner(tests: &[&dyn Fn()]) {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    bsos::test_panic_handler(info)
+    kernel::test_panic_handler(info)
 }
 
 #[test_case]

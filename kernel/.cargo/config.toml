@@ -1,0 +1,8 @@
+[build]
+target = "x86_64-bsos.json"
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+build-std-features = ["compiler-builtins-mem"]
+panic-abort-tests = true
+json-target-spec = true

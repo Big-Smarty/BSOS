@@ -4,7 +4,7 @@
 
 use core::panic::PanicInfo;
 
-use bsos::{exit_qemu, gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, serial_println};
+use kernel::{exit_qemu, gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, serial_println};
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
@@ -23,7 +23,7 @@ lazy_static! {
 #[unsafe(no_mangle)]
 extern "C" fn _start() -> ! {
     serial_println!("stack_overflow::stack_overflow...\t");
-    bsos::gdt::init();
+    kernel::gdt::init();
     init_test_idt();
 
     stack_overflow();
@@ -36,7 +36,7 @@ extern "x86-interrupt" fn double_fault_handler(
     _error_code: u64,
 ) -> ! {
     serial_println!("[ok]");
-    exit_qemu(bsos::QemuExitCode::Success);
+    exit_qemu(kernel::QemuExitCode::Success);
     hlt_loop()
 }
 
@@ -52,5 +52,5 @@ fn stack_overflow() {
 
 #[panic_handler]
 fn panic(panic_info: &PanicInfo) -> ! {
-    bsos::test_panic_handler(panic_info);
+    kernel::test_panic_handler(panic_info);
 }
