@@ -14,8 +14,19 @@ use bsos::{
     hlt_loop,
     memory::{self},
     println, serial_println,
+    simple_executor::SimpleExecutor,
+    task::Task,
 };
 use x86_64::VirtAddr;
+
+async fn async_number() -> u32 {
+    42
+}
+
+async fn async_print_number() {
+    let number = async_number().await;
+    println!("async number: {}", number);
+}
 
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("hello hello {}", 1.0 / 3.0);
@@ -30,8 +41,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     bsos::allocator::init_heap(&mut mapper, &mut frame_allocator)
         .expect("Failed to initialize heap");
 
-    let x = Box::new(41);
-    println!("x: {x:?}");
+    let mut executor = SimpleExecutor::new();
+    executor.spawn(Task::new(async_print_number()));
+    executor.run();
 
     #[cfg(test)]
     test_main();
