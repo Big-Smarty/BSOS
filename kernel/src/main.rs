@@ -33,7 +33,7 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
 };
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    println!("hello hello {}", 1.0 / 3.0);
+    //println!("hello hello {}", 1.0 / 3.0);
     serial_println!("hello hello {}", 1.0 / 3.0);
 
     kernel::init();

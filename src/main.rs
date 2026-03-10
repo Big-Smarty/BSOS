@@ -2,6 +2,9 @@ use ovmf_prebuilt::{Arch, FileType, Prebuilt, Source};
 use std::env;
 use std::process::{Command, exit};
 
+// FIXME: add tests
+// FIXME: add successful test return code
+
 fn main() {
     // read env variables that were set in build script
     let uefi_path = env!("UEFI_PATH");
@@ -31,7 +34,7 @@ fn main() {
     // print serial output to the shell
     cmd.arg("-serial").arg("mon:stdio");
     // don't display video output
-    cmd.arg("-display").arg("none");
+    //cmd.arg("-display").arg("none");
     // enable the guest to exit qemu
     cmd.arg("-device")
         .arg("isa-debug-exit,iobase=0xf4,iosize=0x04");
