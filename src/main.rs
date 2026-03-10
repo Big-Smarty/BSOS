@@ -15,7 +15,7 @@ use bsos::{
     memory::{self},
     println, serial_println,
     simple_executor::SimpleExecutor,
-    task::Task,
+    task::{Task, executor::Executor, keyboard},
 };
 use x86_64::VirtAddr;
 
@@ -41,14 +41,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     bsos::allocator::init_heap(&mut mapper, &mut frame_allocator)
         .expect("Failed to initialize heap");
 
-    let mut executor = SimpleExecutor::new();
+    let mut executor = Executor::new();
     executor.spawn(Task::new(async_print_number()));
+    executor.spawn(Task::new(keyboard::print_keypresses()));
     executor.run();
-
-    #[cfg(test)]
-    test_main();
-
-    hlt_loop();
 }
 
 entry_point!(kernel_main);

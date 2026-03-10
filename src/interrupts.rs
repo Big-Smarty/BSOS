@@ -8,7 +8,7 @@ use x86_64::{
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode},
 };
 
-use crate::{gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, print, println};
+use crate::{gdt::DOUBLE_FAULT_IST_INDEX, hlt_loop, print, println, task::keyboard::add_scancode};
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -76,33 +76,13 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    lazy_static! {
-        static ref KEYBOARD: Mutex<Keyboard<layouts::De105Key, ScancodeSet1>> =
-            Mutex::new(Keyboard::new(
-                ScancodeSet1::new(),
-                layouts::De105Key,
-                pc_keyboard::HandleControl::Ignore
-            ));
-    }
-
-    let mut keyboard = KEYBOARD.lock();
     let mut port = Port::new(0x60);
     let scancode: u8 = unsafe { port.read() };
-
-    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
-        if let Some(key) = keyboard.process_keyevent(key_event) {
-            match key {
-                pc_keyboard::DecodedKey::RawKey(key_code) => print!("{key_code:?}"),
-                pc_keyboard::DecodedKey::Unicode(character) => {
-                    print!("{character}")
-                }
-            }
-        }
-    }
+    add_scancode(scancode);
 
     unsafe {
         PICS.lock()
-            .notify_end_of_interrupt(InterruptIndex::Timer as u8);
+            .notify_end_of_interrupt(InterruptIndex::Keyboard as u8);
     }
 }
 
