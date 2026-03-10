@@ -69,8 +69,12 @@ pub async fn print_keypresses() {
         if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
             if let Some(key) = keyboard.process_keyevent(key_event) {
                 match key {
-                    pc_keyboard::DecodedKey::RawKey(key_code) => print!("{key_code:?}"),
-                    pc_keyboard::DecodedKey::Unicode(key) => print!("{key}"),
+                    pc_keyboard::DecodedKey::RawKey(key_code) => {
+                        print!("{key_code:?}");
+                    }
+                    pc_keyboard::DecodedKey::Unicode(key) => {
+                        print!("{key}");
+                    }
                 }
             }
         }
