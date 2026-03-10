@@ -14,8 +14,8 @@ use x86_64::{
 
 use crate::allocator::fixed_size_block::FixedBlockSizeAllocator;
 
-pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
+pub const HEAP_START: u64 = 0x_4444_4444_0000;
+pub const HEAP_SIZE: u64 = 100 * 1024; // 100 KiB
 
 #[global_allocator]
 static ALLOCATOR: Locked<FixedBlockSizeAllocator> = Locked::new(FixedBlockSizeAllocator::new());
@@ -60,7 +60,9 @@ pub fn init_heap(
         }
     }
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+        ALLOCATOR
+            .lock()
+            .init(HEAP_START as usize, HEAP_SIZE as usize);
     }
     Ok(())
 }
