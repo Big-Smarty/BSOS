@@ -1,4 +1,5 @@
 pub mod bump;
+pub mod fixed_size_block;
 pub mod linked_list;
 mod util;
 
@@ -11,7 +12,10 @@ use x86_64::{
     },
 };
 
-use crate::allocator::{bump::BumpAllocator, linked_list::LinkedListAllocator};
+use crate::allocator::{
+    bump::BumpAllocator, fixed_size_block::FixedBlockSizeAllocator,
+    linked_list::LinkedListAllocator,
+};
 
 pub struct Locked<A> {
     inner: spin::Mutex<A>,
@@ -33,7 +37,7 @@ pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
 #[global_allocator]
-static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
+static ALLOCATOR: Locked<FixedBlockSizeAllocator> = Locked::new(FixedBlockSizeAllocator::new());
 
 pub struct Dummy;
 
