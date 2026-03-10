@@ -6,6 +6,9 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
 
+pub const BUFFER_HEIGHT: usize = 25;
+pub const BUFFER_WIDTH: usize = 80;
+
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
@@ -52,9 +55,6 @@ pub struct ScreenChar {
     ascii_character: u8,
     color_code: ColorCode,
 }
-
-pub const BUFFER_HEIGHT: usize = 25;
-pub const BUFFER_WIDTH: usize = 80;
 
 #[repr(transparent)]
 pub struct Buffer {

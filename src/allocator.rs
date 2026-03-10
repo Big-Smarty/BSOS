@@ -14,6 +14,14 @@ use x86_64::{
 
 use crate::allocator::fixed_size_block::FixedBlockSizeAllocator;
 
+pub const HEAP_START: usize = 0x_4444_4444_0000;
+pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
+
+#[global_allocator]
+static ALLOCATOR: Locked<FixedBlockSizeAllocator> = Locked::new(FixedBlockSizeAllocator::new());
+
+pub struct Dummy;
+
 pub struct Locked<A> {
     inner: spin::Mutex<A>,
 }
@@ -29,14 +37,6 @@ impl<A> Locked<A> {
         self.inner.lock()
     }
 }
-
-pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
-
-#[global_allocator]
-static ALLOCATOR: Locked<FixedBlockSizeAllocator> = Locked::new(FixedBlockSizeAllocator::new());
-
-pub struct Dummy;
 
 pub fn init_heap(
     mapper: &mut impl Mapper<Size4KiB>,
