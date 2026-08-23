@@ -7,7 +7,7 @@ fn main() {
     // https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies
     let kernel = PathBuf::from(std::env::var_os("CARGO_BIN_FILE_KERNEL_kernel").unwrap());
 
-    // create an UEFI disk image (optional)
+    // create a UEFI disk image
     let uefi_path = out_dir.join("uefi.img");
     bootloader::UefiBoot::new(&kernel)
         .create_disk_image(&uefi_path)

@@ -33,7 +33,6 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
 };
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    //println!("hello hello {}", 1.0 / 3.0);
     serial_println!("hello hello {}", 1.0 / 3.0);
 
     kernel::init();
@@ -60,7 +59,7 @@ fn panic(info: &PanicInfo) -> ! {
     hlt_loop()
 }
 
-// our panic handler in test mode
+// panic handler used only when running the kernel test harness
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
